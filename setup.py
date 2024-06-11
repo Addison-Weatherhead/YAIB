@@ -8,6 +8,7 @@ from setuptools import setup, find_packages
 root_path = Path(__file__).resolve().parent
 
 
+
 def parse_environment_yml():
     """Parse the environment.yml file and extract the package names."""
     # here we cannot use pyyaml because it is not installed yet
