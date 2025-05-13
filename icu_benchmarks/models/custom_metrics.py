@@ -2,7 +2,7 @@ import torch
 from typing import Callable
 import numpy as np
 from ignite.metrics import EpochMetric
-from sklearn.metrics import balanced_accuracy_score, mean_absolute_error
+from sklearn.metrics import balanced_accuracy_score, mean_absolute_error, mean_absolute_percentage_error
 from sklearn.calibration import calibration_curve
 from scipy.spatial.distance import jensenshannon
 from torchmetrics.classification import BinaryFairness
@@ -71,6 +71,24 @@ class MAE(EpochMetric):
             y_pred = invert_fn(y_preds.numpy().reshape(-1, 1))[:, 0]
             return mean_absolute_error(y_true, y_pred)
 
+
+class MAPE(EpochMetric):
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        check_compute_fn: bool = False,
+        invert_transform: Callable = lambda x: x,
+    ) -> None:
+        super(MAPE, self).__init__(
+            lambda x, y: mape_with_invert_compute_fn(x, y, invert_transform),
+            output_transform=output_transform,
+            check_compute_fn=check_compute_fn,
+        )
+
+        def mape_with_invert_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor, invert_fn=Callable) -> float:
+            y_true = invert_fn(y_targets.numpy().reshape(-1, 1))[:, 0]
+            y_pred = invert_fn(y_preds.numpy().reshape(-1, 1))[:, 0]
+            return mean_absolute_percentage_error(y_true, y_pred)
 
 class JSD(EpochMetric):
     def __init__(

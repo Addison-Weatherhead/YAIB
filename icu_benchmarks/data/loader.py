@@ -170,9 +170,11 @@ class ImputationDataset(CommonDataset):
         split: str = Split.train,
         vars: Dict[str, str] = gin.REQUIRED,
         mask_proportion=0.3,
-        mask_method="MCAR",
+        mask_method: str="MCAR",
         mask_observation_proportion=0.3,
         ram_cache: bool = True,
+        name: str = "", # I added this
+        max_seq_len: int = None,
     ):
         """
         Args:
@@ -184,11 +186,15 @@ class ImputationDataset(CommonDataset):
             mask_observation_proportion (float, optional): poportion of the observed data to be masked. Defaults to 0.3.
             ram_cache (bool, optional): if the dataset should be completely stored in ram and not generated on the fly during
                 training. Defaults to True.
+            max_seq_len (int, optional): Length to pad to
         """
         super().__init__(data, split, vars, grouping_segment=Segment.static)
+        self.max_seq_len = max_seq_len
         self.amputated_values, self.amputation_mask = ampute_data(
             self.features_df, mask_method, mask_proportion, mask_observation_proportion
         )
+        print("'vars' for ImputationDataset: ", vars)
+        print('Contains missingness already?: ', self.features_df.isna().any())
         self.amputation_mask = (self.amputation_mask + self.features_df.isna().values).bool()
         self.amputation_mask = DataFrame(self.amputation_mask, columns=self.vars[Segment.dynamic])
         self.amputation_mask[self.vars["GROUP"]] = self.features_df.index
@@ -197,6 +203,7 @@ class ImputationDataset(CommonDataset):
         self.target_missingness_mask = self.features_df.isna()
         self.features_df.fillna(0, inplace=True)
         self.ram_cache(ram_cache)
+        self.name=name
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor]:
         """Function to sample from the data split of choice.
@@ -211,13 +218,23 @@ class ImputationDataset(CommonDataset):
         """
         if self._cached_dataset is not None:
             return self._cached_dataset[idx]
+
         stay_id = self.grouping_df.iloc[idx].name
 
-        # slice to make sure to always return a DF
+        # Retrieve data
         window = self.features_df.loc[stay_id:stay_id, self.vars[Segment.dynamic]]
         window_missingness_mask = self.target_missingness_mask.loc[stay_id:stay_id, self.vars[Segment.dynamic]]
         amputated_window = self.amputated_values.loc[stay_id:stay_id, self.vars[Segment.dynamic]]
         amputation_mask = self.amputation_mask.loc[stay_id:stay_id, self.vars[Segment.dynamic]]
+
+        # Padding
+        length_diff = self.max_seq_len - len(window)
+        if length_diff > 0:
+            pad_shape = (length_diff, window.shape[1])
+            window = np.pad(window, ((0, length_diff), (0, 0)), constant_values=0)
+            window_missingness_mask = np.pad(window_missingness_mask, ((0, length_diff), (0, 0)), constant_values=0)
+            amputated_window = np.pad(amputated_window, ((0, length_diff), (0, 0)), constant_values=0)
+            amputation_mask = np.pad(amputation_mask, ((0, length_diff), (0, 0)), constant_values=0)
 
         return (
             from_numpy(amputated_window.values).to(float32),

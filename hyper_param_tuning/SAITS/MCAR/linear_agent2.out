@@ -1,0 +1,64 @@
+wandb: Starting wandb agent 🕵️
+2024-11-16 07:11:00,505 - wandb.wandb_agent - INFO - Running runs: []
+--- Logging error ---
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1104, in emit
+    self.flush()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1084, in flush
+    self.stream.flush()
+OSError: [Errno 122] Disk quota exceeded
+Call stack:
+  File "/h/addisonw/anaconda3/envs/yaib/bin/wandb", line 8, in <module>
+    sys.exit(cli())
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1157, in __call__
+    return self.main(*args, **kwargs)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1078, in main
+    rv = self.invoke(ctx)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1688, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1434, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 783, in invoke
+    return __callback(*args, **kwargs)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/decorators.py", line 33, in new_func
+    return f(get_current_context(), *args, **kwargs)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/cli/cli.py", line 108, in wrapper
+    return func(*args, **kwargs)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/cli/cli.py", line 1826, in agent
+    wandb_agent.agent(sweep_id, entity=entity, project=project, count=count)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/wandb_agent.py", line 570, in agent
+    return run_agent(
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/wandb_agent.py", line 528, in run_agent
+    agent.run()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/wandb_agent.py", line 217, in run
+    logger.info("Running runs: %s", list(self._run_processes.keys()))
+Message: 'Running runs: %s'
+Arguments: ([],)
+2024-11-16 07:11:01,111 - wandb.wandb_agent - INFO - Agent received command: run
+--- Logging error ---
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1104, in emit
+    self.flush()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1084, in flush
+    self.stream.flush()
+OSError: [Errno 122] Disk quota exceeded
+Call stack:
+  File "/h/addisonw/anaconda3/envs/yaib/bin/wandb", line 8, in <module>
+    sys.exit(cli())
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1157, in __call__
+    return self.main(*args, **kwargs)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1078, in main
+    rv = self.invoke(ctx)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1688, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 1434, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/core.py", line 783, in invoke
+    return __callback(*args, **kwargs)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/click/decorators.py", line 33, in new_func
+    return f(get_current_context(), *args, **kwargs)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/cli/cli.py", line 108, in wrapper
+    return func(*args, **kwargs)
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+--- Logging error ---
+slurmstepd: error: *** JOB 13867183 ON gpu096 CANCELLED AT 2024-11-16T15:11:02 DUE TO TIME LIMIT ***

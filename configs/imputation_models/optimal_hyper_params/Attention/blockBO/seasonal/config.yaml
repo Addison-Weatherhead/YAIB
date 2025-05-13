@@ -1,0 +1,36 @@
+lr: 0.002
+d_k: 64
+d_v: 128
+seed: 1111
+model: Attention
+epochs: 100
+n_head: 8
+Adam.lr: 0.001
+d_inner: 64
+d_model: 128
+dropout: 0.1
+data_dir: demo_data/simulated/seasonal
+lr_steps: None
+momentum: 0.9
+n_layers: 2
+run-name: run_Attention_seasonal
+run_mode: imputation
+lr_factor: 0.99
+input_size: [64, 200, 2]
+input_shape: None
+lr_scheduler: 
+Attention.d_k: 64
+Attention.d_v: 128
+Attention.n_head: 8
+Attention.d_inner: 64
+Attention.d_model: 128
+Attention.dropout: 0.1
+Attention.n_layers: 2
+initialization_method: NORMAL
+pretrained_imputation_model: None
+execute_repeated_cv.cv_folds: 5
+ImputationDataset.mask_method: blockBO
+UncertaintyImputationWrapper.lr_scheduler: 
+execute_repeated_cv.cv_repetitions: 2
+execute_repeated_cv.cv_folds_to_train: 1
+execute_repeated_cv.cv_repetitions_to_train: 1

@@ -1,0 +1,8 @@
+{
+    "exclude": [
+      "slurm_outputs", 
+      "slurm_scripts",
+      "hyper_param_tuning"
+    ]
+  }
+  

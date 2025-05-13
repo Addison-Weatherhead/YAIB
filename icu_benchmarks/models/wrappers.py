@@ -1,7 +1,8 @@
 import logging
 from abc import ABC
 from typing import Dict, Any, List, Optional, Union
-
+import os
+import json
 import torchmetrics
 from sklearn.metrics import log_loss, mean_squared_error
 
@@ -10,7 +11,7 @@ from torch.nn import MSELoss, CrossEntropyLoss
 import torch.nn as nn
 from torch import Tensor, FloatTensor
 from torch.optim import Optimizer, Adam
-
+import matplotlib.pyplot as plt
 import inspect
 import gin
 import numpy as np
@@ -19,9 +20,11 @@ from icu_benchmarks.models.constants import ImputationInit
 from icu_benchmarks.models.utils import create_optimizer, create_scheduler
 from joblib import dump
 from pytorch_lightning import LightningModule
+import pandas as pd
 
 from icu_benchmarks.models.constants import MLMetrics, DLMetrics
 from icu_benchmarks.contants import RunMode
+from icu_benchmarks.global_config import GlobalConfig
 
 gin.config.external_configurable(nn.functional.nll_loss, module="torch.nn.functional")
 gin.config.external_configurable(nn.functional.cross_entropy, module="torch.nn.functional")
@@ -30,6 +33,103 @@ gin.config.external_configurable(nn.functional.mse_loss, module="torch.nn.functi
 gin.config.external_configurable(mean_squared_error, module="sklearn.metrics")
 gin.config.external_configurable(log_loss, module="sklearn.metrics")
 
+def plot_imputation_uncertainty_by_block(imputed_blocks_stds, save_path):
+    """
+    Plots the uncertainty of imputations over time for each block size in subplots within a single PNG file.
+
+    Args:
+        imputed_blocks_stds: List of tensors, each representing the standard deviations
+                             of imputations for a single imputed block.
+        save_path: Path to save the output plot.
+    """
+    #block_sizes = [2, 4, 8, 16, 32]
+    block_sizes = [2, 3, 4, 5, 6]
+    # Create subplots: one for each block size
+    n_plots = len(block_sizes)
+    fig, axes = plt.subplots(n_plots, 1, figsize=(8, 5 * n_plots), sharex=False, sharey=False)
+
+    if n_plots == 1:  # If there's only one block size, axes will not be a list
+        axes = [axes]
+
+    for ax, block_size in zip(axes, block_sizes):
+        # Filter blocks for the current block size
+        filtered_blocks = [tensor for tensor in imputed_blocks_stds if tensor.shape[0] == block_size]
+        if len(filtered_blocks) == 0:
+            continue
+        # Stack the filtered blocks into a tensor
+        stacked_blocks = torch.stack(filtered_blocks).cpu().detach()
+        
+        # Compute mean and standard deviation along the batch (0th) dimension
+        block_std_means = stacked_blocks.mean(dim=0).numpy()
+        block_std_stds = stacked_blocks.std(dim=0).numpy()
+
+        # Time steps for the block
+        time_steps = list(range(block_size))
+
+        # Plot for this block size
+        ax.plot(
+            time_steps,
+            block_std_means,
+            marker='o',
+            label=f'Block size {block_size}'
+        )
+        ax.fill_between(
+            time_steps,
+            block_std_means - block_std_stds,
+            block_std_means + block_std_stds,
+            alpha=0.2,
+            label='±1 std dev'
+        )
+
+        # Set titles and labels for each subplot
+        ax.set_title(f"Uncertainty Over Time (Block Size = {block_size}, n={len(filtered_blocks)})")
+        ax.set_xlabel("Time Steps from Start of Imputed Block")
+        ax.set_ylabel("Average Imputation Standard Deviation")
+        ax.legend()
+        ax.grid(True)
+
+    # Adjust layout and save
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+
+
+
+def extract_imputed_blocks(mask, imputed_stds):
+    # Result list to store the imputed blocks
+    imputed_blocks = []
+    # Iterate over each sample in the batch
+    for i in range(mask.shape[0]):
+        mask_row = mask[i]
+        data_row = imputed_stds[i]
+        start_idx = None
+        for t in range(mask.shape[1]):
+            if mask_row[t] == 1:
+                if start_idx is None:
+                    start_idx = t
+            else:
+                if start_idx is not None:
+                    block = data_row[start_idx:t]
+                    imputed_blocks.append(block)
+                    start_idx = None
+        
+        # Handle the case where the block reaches the end of the time series
+        if start_idx is not None:
+            block = data_row[start_idx:]
+            imputed_blocks.append(block)
+
+    print('Distribution of detected block sizes:')
+    size_dist = {}
+    for block in imputed_blocks:
+        if block.shape[0] not in size_dist:
+            size_dist[block.shape[0]] = 1
+        else:
+            size_dist[block.shape[0]] += 1
+    for k in sorted(size_dist.keys()):
+        print('%d: %d'%(k, size_dist[k]))
+    block_sizes = [block.shape[0] for block in imputed_blocks]
+    return imputed_blocks
 
 @gin.configurable("BaseModule")
 class BaseModule(LightningModule):
@@ -78,6 +178,8 @@ class BaseModule(LightningModule):
 
     def on_test_epoch_end(self) -> None:
         self.finalize_step("test")
+        if GlobalConfig.missingness_type == 'blockBO' and isinstance(self, UncertaintyImputationWrapper):
+            plot_imputation_uncertainty_by_block(self.imputed_blocks_stds, 'results_tables/block_imputation_uncertainty/%s_%s.png'%(GlobalConfig.dataset_name, GlobalConfig.model_name))
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         checkpoint["class"] = self.__class__
@@ -91,7 +193,6 @@ class BaseModule(LightningModule):
         if runmode not in self._supported_run_modes:
             raise ValueError(f"Runmode {runmode} not supported for {self.__class__.__name__}")
         return True
-
 
 @gin.configurable("DLWrapper")
 class DLWrapper(BaseModule, ABC):
@@ -124,6 +225,7 @@ class DLWrapper(BaseModule, ABC):
         self.run_mode = run_mode
         self.input_shape = input_shape
         self.lr = lr
+        print('LR chosen for optimizer: ', self.lr)
         self.momentum = momentum
         self.lr_scheduler = lr_scheduler
         self.lr_factor = lr_factor
@@ -134,6 +236,7 @@ class DLWrapper(BaseModule, ABC):
         self.scaler = None
 
     def on_fit_start(self):
+        print('DLWrapper on_fit_start called')
         self.metrics = {
             step_name: {
                 metric_name: (metric() if isinstance(metric, type) else metric)
@@ -192,6 +295,13 @@ class DLWrapper(BaseModule, ABC):
         optimizers = {"optimizer": optimizer, "lr_scheduler": scheduler}
         logging.info(f"Using: {optimizers}")
         return optimizers
+    
+    def on_validation_epoch_start(self) -> None:
+        self.metrics = {
+            step_name: {metric_name: metric() for metric_name, metric in self.set_metrics().items()}
+            for step_name in ["train", "val", "test"]
+        }
+        return super().on_validation_epoch_start()
 
     def on_test_epoch_start(self) -> None:
         self.metrics = {
@@ -372,11 +482,13 @@ class MLWrapper(BaseModule, ABC):
         self.loss = loss
         self.patience = patience
         self.mps = mps
+        self.log_dir = None
 
     def set_metrics(self, labels):
         if self.run_mode == RunMode.classification:
             # Binary classification
             if len(np.unique(labels)) == 2:
+                print('Set metrics set for Binary Classification')
                 # if isinstance(self.model, lightgbm.basic.Booster):
                 self.output_transform = lambda x: x[:, 1]
                 self.label_transform = lambda x: x
@@ -433,13 +545,14 @@ class MLWrapper(BaseModule, ABC):
 
         val_pred = self.predict(val_rep)
 
-        self.log_metrics("val/loss", self.loss(val_label, val_pred), sync_dist=True)
+        self.log("val/loss", self.loss(val_label, val_pred), sync_dist=True)
         logging.info(f"Val loss: {self.loss(val_label, val_pred)}")
         self.log_metrics(val_label, val_pred, "val")
 
     def test_step(self, dataset, _):
+        print('Test step run for MLWrapper')
         test_rep, test_label = dataset
-        test_rep, test_label = test_rep.squeeze().cpu().numpy(), test_label.squeeze().cpu().numpy()
+        test_rep, test_label = test_rep.squeeze(), test_label.squeeze()
         self.set_metrics(test_label)
         test_pred = self.predict(test_rep)
 
@@ -450,7 +563,7 @@ class MLWrapper(BaseModule, ABC):
             self.log("test/loss", self.loss(test_label, test_pred), sync_dist=True)
             self.log_metrics(test_label, test_pred, "test")
         logging.debug(f"Test loss: {self.loss(test_label, test_pred)}")
-
+        return self.loss(test_label, test_pred)
     def predict(self, features):
         if self.run_mode == RunMode.regression:
             return self.model.predict(features)
@@ -460,8 +573,7 @@ class MLWrapper(BaseModule, ABC):
     def log_metrics(self, label, pred, metric_type):
         """Log metrics to the PL logs."""
 
-        self.log_dict(
-            {
+        log_dict = {
                 # MPS dependent type casting
                 f"{metric_type}/{name}": metric(self.label_transform(label), self.output_transform(pred))
                 if not self.mps
@@ -470,9 +582,15 @@ class MLWrapper(BaseModule, ABC):
                 for name, metric in self.metrics.items()
                 # Filter out metrics that return a tuple (e.g. precision_recall_curve)
                 if not isinstance(metric(self.label_transform(label), self.output_transform(pred)), tuple)
-            },
+            }
+        print('log_dict: ', log_dict)
+        self.log_dict(
+            log_dict,
             sync_dist=True,
         )
+
+        with (self.log_dir / f"{metric_type}_metrics.json").open("w") as f:
+            json.dump({k: v for k,v in log_dict.items() if metric_type in k}, f, indent=4)
 
     def configure_optimizers(self):
         return None
@@ -501,7 +619,6 @@ class MLWrapper(BaseModule, ABC):
         hyperparams = {key: value for key, value in arguments.items() if key in possible_hps}
         logging.debug(f"Creating model with: {hyperparams}.")
         return model(**hyperparams)
-
 
 @gin.configurable("ImputationWrapper")
 class ImputationWrapper(DLWrapper):
@@ -605,3 +722,230 @@ class ImputationWrapper(DLWrapper):
         prediction = self.predict_step(data, data_missingness)
         data[data_missingness.bool()] = prediction[data_missingness.bool()]
         return data
+
+
+@gin.configurable("UncertaintyImputationWrapper")
+class UncertaintyImputationWrapper(ImputationWrapper):
+    """Interface for uncertainty imputation models."""
+
+    requires_backprop = True
+    _supported_run_modes = [RunMode.imputation]
+
+    def __init__(
+        self,
+        loss: nn.modules.loss._Loss = MSELoss(),
+        optimizer: Union[str, Optimizer] = "adam",
+        run_mode: RunMode = RunMode.imputation,
+        lr: float = 0.002,
+        momentum: float = 0.9,
+        lr_scheduler: Optional[str] = None,
+        lr_factor: float = 0.99,
+        lr_steps: Optional[List[int]] = None,
+        input_size: Tensor = None,
+        initialization_method: ImputationInit = ImputationInit.NORMAL,
+        epochs=100,
+        **kwargs: str,
+    ) -> None:
+        super().__init__(
+            loss=loss,
+            optimizer=optimizer,
+            run_mode=run_mode,
+            lr=lr,
+            momentum=momentum,
+            lr_scheduler=lr_scheduler,
+            lr_factor=lr_factor,
+            lr_steps=lr_steps,
+            epochs=epochs,
+            input_size=input_size,
+            initialization_method=initialization_method,
+            kwargs=kwargs,
+        )
+        self.check_supported_runmode(run_mode)
+        self.run_mode = run_mode
+        self.save_hyperparameters(ignore=["loss", "optimizer"])
+        self.loss = loss
+        self.optimizer = optimizer
+
+        
+        self.num_val_uncertainty_steps = 10 # Number of times to compute uncertainty measure during validation process. This allows us to have error bars on MAE vs Uncertainty Plots.
+        self.val_uncertainties = [[] for _ in range(self.num_val_uncertainty_steps)]
+        self.val_abs_errors = [[] for _ in range(self.num_val_uncertainty_steps)]
+        self.thresholds = []
+        self._threshold = float('inf') # The threshold of uncertainty. When the model is more uncertain than this, it doesn't impute. By default, float(inf) so model imputes everything
+
+        self.imputed_blocks_stds = []
+    def get_threshold(self):
+        return self._threshold
+    def set_threshold(self, threshold):
+        self._threshold = threshold
+        print('Imputation Model threshold updated to ', self._threshold)
+
+    def on_fit_start(self) -> None:
+        print('UncertaintyImputationWrapper on_fit_start called')
+        self.init_weights(self.hparams.initialization_method)
+        for metrics in self.metrics.values():
+            for metric in metrics.values():
+                metric.reset()
+        return super().on_fit_start()
+
+
+    def predict_with_uncertainty(self, amputated, amputation_mask, n_forward_passes=16): # Was 32
+        """Perform Monte Carlo Dropout during inference to estimate uncertainty """
+        print('predict with uncertainty called', flush=True)
+        self.train()
+        with torch.no_grad():
+            preds = []
+            for _ in range(n_forward_passes):
+                preds.append(self.forward(amputated, amputation_mask, mc_mode=True))
+            preds = torch.stack(preds, dim=0)
+        mean = preds.mean(dim=0)
+        std = preds.std(dim=0)
+        assert (std>0).any()
+        return mean, std
+
+    
+    def step_fn(self, batch, step_prefix=""):
+        # of shape (1, bs, T, D)
+        amputated, amputation_mask, target, target_missingness = batch
+        print('step_fn called with step_prefix: ', step_prefix, flush=True)
+        if step_prefix == "val":
+            for i in range(self.num_val_uncertainty_steps):
+                #original_amputated = amputated.clone()
+                # We do MC dropout to gather uncertainty
+                imputated_mean, imputated_std = self.predict_with_uncertainty(
+                    amputated, amputation_mask
+                )
+                
+                # amputation_mask is True if the value was originally missing or is artifically missing
+                # ~target_missingness is True if the value was not originally missing
+                # So artificial_missing_mask is True only for values that were artificially missing and not originally missing
+                artificial_missing_mask = amputation_mask.int() & ~(target_missingness.int())
+                
+                # store uncertainties and errors *ONLY for the amputed positions*
+                masked = (artificial_missing_mask > 0)
+                print('torch.sum(masked)', torch.sum(masked), ' masked shape: ', masked.shape)
+                selected_unc = imputated_std[masked]         # shape (#missing_positions,)
+                selected_err = (imputated_mean - target)[masked].abs()
+                print('sum(selected_unc==0): ', sum(selected_unc==0), 'selected_unc.shape: ', selected_unc.shape)
+                # Save for dynamic thresholding
+                self.val_uncertainties[i].append(selected_unc.detach().cpu())
+                self.val_abs_errors[i].append(selected_err.detach().cpu())
+            amputated[artificial_missing_mask > 0] = imputated_mean[artificial_missing_mask > 0]
+        elif step_prefix == "test":
+            # of shape (1, bs, T, d)
+            imputated_mean, imputated_std = self.predict_with_uncertainty(amputated, amputation_mask)
+            if GlobalConfig.missingness_type == 'blockBO':
+                self.imputed_blocks_stds.extend(
+                    extract_imputed_blocks(amputation_mask.squeeze()[:, :, 0], 
+                                        imputated_std.squeeze().mean(dim=2)) # Each block is of shape (T,), we avg across dimensions
+                    )
+
+            # Update imputated values to use the mean imputations
+            amputated[amputation_mask > 0] = imputated_mean[amputation_mask > 0]
+            amputated[target_missingness > 0] = target[target_missingness > 0]
+
+
+            # Log the uncertainty
+            self.log(f"{step_prefix}/imputation_std", imputated_std.mean().item(), prog_bar=True)
+
+        else:
+            # Standard imputation (no uncertainty estimation)
+            imputated = self(amputated, amputation_mask)
+            amputated[amputation_mask > 0] = imputated[amputation_mask > 0]
+            amputated[target_missingness > 0] = target[target_missingness > 0]
+
+        # Compute loss
+        loss = self.loss(amputated, target)
+        self.log(f"{step_prefix}/loss", loss.item(), prog_bar=True)
+
+        # Update metrics
+        for metric in self.metrics[step_prefix].values():
+            metric.update(
+                (torch.flatten(amputated.detach(), start_dim=1).clone(), torch.flatten(target.detach(), start_dim=1).clone())
+            )
+        
+        return loss
+
+    def predict_step(self, data, amputation_mask=None):
+        print('predict_step called!', flush=True)
+        return self(data, amputation_mask)
+
+    def predict(self, data):
+        print('predict called with threshold cutoff of : ', self.get_threshold(), flush=True)
+        print('data shape in predict: ', data.shape, flush=True)
+        print('data contains na values: ', torch.isnan(data).any())
+        self.eval()
+        data = data.to(self.device)
+        data_missingness = torch.isnan(data).to(torch.float32)
+        prediction, uncertainty = self.predict_with_uncertainty(data, data_missingness)
+        mask = data_missingness.bool() & (uncertainty<self._threshold).bool()
+        data[mask] = prediction[mask]
+        return data
+    
+    def on_validation_epoch_start(self) -> None:
+        print('on_validation_epoch_start called!')
+        super().on_validation_epoch_start()
+        # Clear out any existing lists
+        self.val_uncertainties = [[] for _ in range(self.num_val_uncertainty_steps)]
+        self.val_abs_errors = [[] for _ in range(self.num_val_uncertainty_steps)]
+
+    def on_validation_epoch_end(self) -> None:
+        print('on_validation_epoch_end called!')
+        super().on_validation_epoch_end()
+
+        # If we gathered uncertainties, compute dynamic thresholds
+        if len(self.val_uncertainties[0]) > 0:
+            quantiles = [0.1 * i for i in range(1, 11)]
+            all_mae = []
+            all_thresholds = []
+            for ind in range(self.num_val_uncertainty_steps):
+                # Sort for torch.quantile, it requires sorted values
+                uncertainties, sort_inds = torch.sort(torch.cat(self.val_uncertainties[ind], dim=0))  # shape: (#all_missing_in_val, )
+                abs_errors = torch.cat(self.val_abs_errors[ind], dim=0)[sort_inds]         # shape: (#all_missing_in_val, )
+
+                thresholds = torch.quantile(uncertainties, torch.tensor(quantiles, device=uncertainties.device))
+                self.thresholds = thresholds
+                all_thresholds.append(thresholds)
+                mae_values = []
+                
+                #n_samples = [] # Num data points imputed per threshold cutoff
+                for i, thr in enumerate(thresholds):
+                    # points with uncertainty < thr
+                    mask = (uncertainties < thr)
+                    print('mask.sum(): ', mask.sum())
+                    if mask.sum() == 0:
+                        mae = float('nan')
+                    else:
+                        mae = abs_errors[mask].mean().item()
+                    mae_values.append(mae)
+                    #n_samples.append(mask.sum())
+                    self.log(f"val/mae_uncertainty<percentile_{int(quantiles[i]*100)}", mae, prog_bar=False)
+                all_mae.append(np.array(mae_values))
+            
+            
+            all_mae = np.array(all_mae)
+            os.makedirs(f"results_tables/uncertainty_threshold_MAE/{GlobalConfig.dataset_name}", exist_ok=True)
+            outpath = (
+                f"results_tables/uncertainty_threshold_MAE/{GlobalConfig.dataset_name}/"
+                f"{GlobalConfig.model_name}_{GlobalConfig.missingness_type}.png"
+            )
+            
+            
+            plt.figure(figsize=(8, 6))
+            mean_mae = np.mean(all_mae, axis=0)
+            std_mae = np.std(all_mae, axis=0)
+            data_df = pd.DataFrame({
+                "Uncertainty Quantiles": quantiles,
+                "Mean MAE": mean_mae,
+                "Std MAE": std_mae
+            })
+            data_df.to_csv(f'table_data/imputation/uncertainty_mae_{GlobalConfig.dataset_name}_{GlobalConfig.model_name}_{GlobalConfig.missingness_type}.csv')
+            plt.plot(quantiles, mean_mae, '-o', label="Mean MAE", color="steelblue")
+            plt.fill_between(quantiles, mean_mae - std_mae, mean_mae + std_mae, color="steelblue", alpha=0.3, label="±1 Std Dev")
+            plt.title("Validation MAE vs. Uncertainty Thresholds (Dynamic Percentiles)")
+            plt.xlabel("Uncertainty Quantiles")
+            plt.ylabel("MAE (on imputations with uncertainty<threshold)")
+            plt.grid(True)
+            plt.savefig(outpath)
+            plt.close()
+

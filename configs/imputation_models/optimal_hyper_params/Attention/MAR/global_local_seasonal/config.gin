@@ -1,0 +1,21 @@
+import gin.torch.external_configurables
+import icu_benchmarks.models.wrappers
+import icu_benchmarks.models.dl_models
+import icu_benchmarks.models.utils
+import icu_benchmarks.imputation.baselines
+import icu_benchmarks.data.preprocessor
+
+# Train params
+train_common.model = @Attention
+
+
+# Model params
+Attention.epochs = 100
+UncertaintyImputationWrapper.lr = 0.001
+Attention.d_k = 64
+Attention.d_v = 128
+Attention.n_head = 8
+Attention.d_inner = 128
+Attention.d_model = 128
+Attention.dropout = 0.1
+Attention.n_layers = 4

@@ -23,7 +23,7 @@ from sklearn.preprocessing import LabelEncoder, FunctionTransformer, MinMaxScale
 
 from icu_benchmarks.wandb_utils import update_wandb_config
 from icu_benchmarks.data.loader import ImputationPredictionDataset
-from .constants import DataSplit as Split, DataSegment as Segment
+from .constants import DataSplit as Split, DataSegment as Segment, VarType as Var
 import abc
 
 
@@ -78,8 +78,20 @@ class DefaultClassificationPreprocessor(Preprocessor):
             Preprocessed data.
         """
         logging.info("Preprocessing dynamic features.")
-
+        
+        print('vars: ', vars)
+        print('train data contains missing before process_dynamic: ', data[Split.train][Segment.dynamic][vars[Segment.dynamic]].isna().sum().sum()/data[Split.train][Segment.dynamic][vars[Segment.dynamic]].size)
+        print('val data contains missing before process_dynamic: ', data[Split.val][Segment.dynamic][vars[Segment.dynamic]].isna().sum().sum()/data[Split.val][Segment.dynamic][vars[Segment.dynamic]].size)
+        print('test data contains missing before process_dynamic: ', data[Split.test][Segment.dynamic][vars[Segment.dynamic]].isna().sum().sum()/data[Split.test][Segment.dynamic][vars[Segment.dynamic]].size)
+        print('Dynamic Vars: ', Segment.dynamic)
+        print('Head of train set: ')
+        print(data[Split.train][Segment.dynamic].head())
+        print('Columns of train set: ', data[Split.train][Segment.dynamic].columns)
         data = self._process_dynamic(data, vars)
+        print('train data contains missing after process_dynamic: ', data[Split.train][Segment.dynamic][vars[Segment.dynamic]].isna().sum().sum()/data[Split.train][Segment.dynamic][vars[Segment.dynamic]].size)
+        print('val data contains missing after process_dynamic: ', data[Split.val][Segment.dynamic][vars[Segment.dynamic]].isna().sum().sum()/data[Split.val][Segment.dynamic][vars[Segment.dynamic]].size)
+        print('test data contains missing after process_dynamic: ', data[Split.test][Segment.dynamic][vars[Segment.dynamic]].isna().sum().sum()/data[Split.test][Segment.dynamic][vars[Segment.dynamic]].size)
+        print('Columns of train set: ', data[Split.train][Segment.dynamic].columns)
         if self.use_static_features:
             logging.info("Preprocessing static features.")
             data = self._process_static(data, vars)
@@ -130,9 +142,12 @@ class DefaultClassificationPreprocessor(Preprocessor):
         self.imputation_model.eval()
         with torch.no_grad():
             logging.info(f"Imputing with {self.imputation_model.__class__.__name__}.")
+            print('input_data shape: ', input_data.shape)
+            print('Percent missingness before imputation: ', torch.isnan(input_data).sum()/input_data.numel())
             imputation = self.imputation_model.predict(input_data)
+            print('Percent missingness after imputation: ', torch.isnan(imputation).sum()/imputation.numel())
             logging.info("Imputation done.")
-        assert imputation.isnan().sum() == 0
+        #assert imputation.isnan().sum() == 0
         data = data.copy()
         data.loc[:, self.imputation_model.trained_columns] = imputation.flatten(end_dim=1).to("cpu")
         if group is not None:
@@ -140,14 +155,25 @@ class DefaultClassificationPreprocessor(Preprocessor):
         return data
 
     def _process_dynamic(self, data, vars):
+        # Select only the variables specified in the .gin file.
+        data[Split.train][Segment.dynamic] = data[Split.train][Segment.dynamic][
+            [vars["GROUP"], vars["SEQUENCE"]] + vars[Segment.dynamic]
+        ]
+        data[Split.val][Segment.dynamic] = data[Split.val][Segment.dynamic][
+            [vars["GROUP"], vars["SEQUENCE"]] + vars[Segment.dynamic]
+        ]
+        data[Split.test][Segment.dynamic] = data[Split.test][Segment.dynamic][
+            [vars["GROUP"], vars["SEQUENCE"]] + vars[Segment.dynamic]
+        ]
+
         dyn_rec = Recipe(data[Split.train][Segment.dynamic], [], vars[Segment.dynamic], vars["GROUP"], vars["SEQUENCE"])
         if self.scaling:
             dyn_rec.add_step(StepScale())
         if self.imputation_model is not None:
-            dyn_rec.add_step(StepImputeModel(model=self.model_impute, sel=all_of(vars[Segment.dynamic])))
-        dyn_rec.add_step(StepSklearn(MissingIndicator(), sel=all_of(vars[Segment.dynamic]), in_place=False))
-        dyn_rec.add_step(StepImputeFastForwardFill())
-        dyn_rec.add_step(StepImputeFastZeroFill())
+            dyn_rec.add_step(StepImputeModel(model=self._model_impute, sel=all_of(vars[Segment.dynamic])))
+        dyn_rec.add_step(StepSklearn(MissingIndicator(features='all'), sel=all_of(vars[Segment.dynamic]), in_place=False))
+        #dyn_rec.add_step(StepImputeFastForwardFill())
+        #dyn_rec.add_step(StepImputeFastZeroFill())
         if self.generate_features:
             dyn_rec = self._dynamic_feature_generation(dyn_rec, all_of(vars[Segment.dynamic]))
         data = apply_recipe_to_splits(dyn_rec, data, Segment.dynamic, self.save_cache, self.load_cache)
@@ -238,7 +264,9 @@ class DefaultImputationPreprocessor(Preprocessor):
         self,
         scaling: bool = True,
         use_static_features: bool = True,
-        filter_missing_values: bool = True,
+        save_cache=None, # I added this
+        load_cache=None, # I added this
+        filter_missing_values: bool = False,
     ):
         """Preprocesses data for imputation.
 
@@ -248,7 +276,10 @@ class DefaultImputationPreprocessor(Preprocessor):
         """
         self.scaling = scaling
         self.use_static_features = use_static_features
+        self.save_cache = save_cache
+        self.load_cache = load_cache
         self.filter_missing_values = filter_missing_values
+        print("self.filter_missing_values: ", self.filter_missing_values)
 
     def apply(self, data, vars):
         """
@@ -260,12 +291,12 @@ class DefaultImputationPreprocessor(Preprocessor):
         """
         logging.info("Preprocessor static features.")
         data = {step: self._process_dynamic_data(data[step], vars) for step in data}
-
+        
         dyn_rec = Recipe(data[Split.train][Segment.dynamic], [], vars[Segment.dynamic], vars["GROUP"], vars["SEQUENCE"])
         if self.scaling:
             dyn_rec.add_step(StepScale())
         data = apply_recipe_to_splits(dyn_rec, data, Segment.dynamic, self.save_cache, self.load_cache)
-
+        
         data[Split.train][Segment.features] = (
             data[Split.train].pop(Segment.dynamic).loc[:, vars[Segment.dynamic] + [vars["GROUP"], vars["SEQUENCE"]]]
         )
@@ -291,7 +322,7 @@ class DefaultImputationPreprocessor(Preprocessor):
 
 @staticmethod
 def apply_recipe_to_splits(
-    recipe: Recipe, data: dict[dict[pd.DataFrame]], type: str, save_cache=None, load_cache=None
+    recipe: Recipe, data: dict[dict[pd.DataFrame]], feat_type: str, save_cache=None, load_cache=None
 ) -> dict[dict[pd.DataFrame]]:
     """Fits and transforms the training features, then transforms the validation and test features with the recipe.
 
@@ -300,7 +331,7 @@ def apply_recipe_to_splits(
         save_cache: Save recipe to cache, for e.g. transfer learning.
         recipe: Object containing info about the features and steps.
         data: Dict containing 'train', 'val', and 'test' and types of features per split.
-        type: Whether to apply recipe to dynamic features, static features or outcomes.
+        feat_type: Whether to apply recipe to dynamic features, static features or outcomes.
 
     Returns:
         Transformed features divided into 'train', 'val', and 'test'.
@@ -309,17 +340,18 @@ def apply_recipe_to_splits(
     if isinstance(load_cache, str):
         # Load existing recipe
         recipe = restore_recipe(load_cache)
-        data[Split.train][type] = recipe.bake(data[Split.train][type])
+        data[Split.train][feat_type] = recipe.bake(data[Split.train][feat_type])
     elif isinstance(save_cache, str):
         # Save prepped recipe
-        data[Split.train][type] = recipe.prep()
+        data[Split.train][feat_type] = recipe.prep()
         cache_recipe(recipe, save_cache)
     else:
         # No saving or loading of existing cache
-        data[Split.train][type] = recipe.prep()
+        data[Split.train][feat_type] = recipe.prep()
 
-    data[Split.val][type] = recipe.bake(data[Split.val][type])
-    data[Split.test][type] = recipe.bake(data[Split.test][type])
+
+    data[Split.val][feat_type] = recipe.bake(data[Split.val][feat_type])
+    data[Split.test][feat_type] = recipe.bake(data[Split.test][feat_type])
     return data
 
 

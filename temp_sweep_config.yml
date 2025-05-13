@@ -1,0 +1,75 @@
+command:
+- ${env}
+- ${program}
+- train
+- -t
+- SimulatedDatasetImputation
+- -d
+- demo_data/simulated/sinusoids
+- -c
+- --wandb-sweep
+- --wandb
+method: bayes
+metric:
+  goal: minimize
+  name: avg.jsd
+name: SAITS hyperparameter sweep - sinusoids - BO
+parameters:
+  Adam.lr:
+    values:
+    - 0.001
+    - 0.005
+  ImputationDataset.mask_method:
+    values:
+    - BO
+  ImputationWrapper.lr_scheduler:
+    values:
+    - cosine
+    - ''
+  SAITS.d_inner:
+    values:
+    - 128
+  SAITS.d_k:
+    values:
+    - 32
+  SAITS.d_model:
+    values:
+    - 128
+  SAITS.d_v:
+    values:
+    - 32
+    - 64
+  SAITS.dropout:
+    values:
+    - 0.1
+    - 0.3
+  SAITS.n_head:
+    values:
+    - 4
+    - 8
+  SAITS.n_layers:
+    values:
+    - 2
+    - 4
+  data_dir:
+    values:
+    - demo_data/simulated/sinusoids
+  execute_repeated_cv.cv_folds:
+    values:
+    - 5
+  execute_repeated_cv.cv_folds_to_train:
+    values:
+    - 1
+  execute_repeated_cv.cv_repetitions:
+    values:
+    - 2
+  execute_repeated_cv.cv_repetitions_to_train:
+    values:
+    - 1
+  model:
+    values:
+    - SAITS
+  seed:
+    values:
+    - 1111
+program: icu-benchmarks

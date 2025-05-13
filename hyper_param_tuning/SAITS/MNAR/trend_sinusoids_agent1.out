@@ -1,0 +1,77 @@
+wandb: Starting wandb agent 🕵️
+2024-11-15 07:02:10,060 - wandb.wandb_agent - INFO - Running runs: []
+2024-11-15 07:02:12,148 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-15 07:02:12,155 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.001
+	ImputationDataset.mask_method: MNAR
+	ImputationWrapper.lr_scheduler: cosine
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 64
+	SAITS.dropout: 0.3
+	SAITS.n_head: 4
+	SAITS.n_layers: 2
+	data_dir: demo_data/simulated/trend_sinusoids
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-15 07:02:12,194 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/trend_sinusoids -c --wandb-sweep --wandb
+2024-11-15 07:02:17,210 - wandb.wandb_agent - INFO - Running runs: ['6wk6uqwu']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+--- Logging error ---
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1104, in emit
+    self.flush()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1084, in flush
+    self.stream.flush()
+OSError: [Errno 122] Disk quota exceeded
+Call stack:
+  File "/h/addisonw/anaconda3/envs/yaib/bin/icu-benchmarks", line 33, in <module>
+    sys.exit(load_entry_point('yaib', 'console_scripts', 'icu-benchmarks')())
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/run.py", line 39, in main
+    args = apply_wandb_sweep(args)
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/wandb_utils.py", line 33, in apply_wandb_sweep
+    wandb.init(allow_val_change=True)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 1171, in init
+    return wi.init()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 744, in init
+    logger.info(f"communicating run to backend with {timeout} second timeout")
+Message: 'communicating run to backend with 90.0 second timeout'
+Arguments: ()
+--- Logging error ---
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1104, in emit
+    self.flush()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1084, in flush
+    self.stream.flush()
+OSError: [Errno 122] Disk quota exceeded
+Call stack:
+  File "/h/addisonw/anaconda3/envs/yaib/bin/icu-benchmarks", line 33, in <module>
+    sys.exit(load_entry_point('yaib', 'console_scripts', 'icu-benchmarks')())
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/run.py", line 39, in main
+    args = apply_wandb_sweep(args)
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/wandb_utils.py", line 33, in apply_wandb_sweep
+    wandb.init(allow_val_change=True)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 1171, in init
+    return wi.init()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 793, in init
+    run._on_init()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 2402, in _on_init
+    logger.info("communicating current version")
+Message: 'communicating current version'
+Arguments: ()
+--- Logging error ---
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1104, in emit
+    self.flush()
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/logging/__init__.py", line 1084, in flush
+    self.stream.flush()
+OSError: [Errno 122] Disk quota exceeded
+Call stack:
+--- Logging error ---
+Traceback (most recent call last):
+slurmstepd: error: *** JOB 13867284 ON gpu100 CANCELLED AT 2024-11-15T15:02:22 DUE TO TIME LIMIT ***

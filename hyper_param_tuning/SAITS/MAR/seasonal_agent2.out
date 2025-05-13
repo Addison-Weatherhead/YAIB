@@ -1,0 +1,264 @@
+wandb: Starting wandb agent 🕵️
+2024-11-09 22:51:35,063 - wandb.wandb_agent - INFO - Running runs: []
+2024-11-09 22:51:35,543 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-09 22:51:35,543 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.001
+	ImputationDataset.mask_method: MAR
+	ImputationWrapper.lr_scheduler: 
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 32
+	SAITS.dropout: 0.3
+	SAITS.n_head: 8
+	SAITS.n_layers: 4
+	data_dir: demo_data/simulated/seasonal
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-09 22:51:35,575 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/seasonal -c --wandb-sweep --wandb
+2024-11-09 22:51:40,593 - wandb.wandb_agent - INFO - Running runs: ['ssjaanv5']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.18.6 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.2
+wandb: Run data is saved locally in /fs01/home/addisonw/YAIB/wandb/run-20241109_225218-ssjaanv5
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run sweet-sweep-8
+wandb: ⭐️ View project at https://wandb.ai/addisonweatherhead/YAIB
+wandb: 🧹 View sweep at https://wandb.ai/addisonweatherhead/YAIB/sweeps/7719jq7m
+wandb: 🚀 View run at https://wandb.ai/addisonweatherhead/YAIB/runs/ssjaanv5
+INFO:root:Running experiment seasonal.
+INFO:root:Task mode: Imputation.
+INFO:root:Logging to ../yaib_logs/seasonal/SimulatedDatasetImputation/SAITS.
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/bin/icu-benchmarks", line 33, in <module>
+    sys.exit(load_entry_point('yaib', 'console_scripts', 'icu-benchmarks')())
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/run.py", line 94, in main
+    log_full_line(f"Available GPU {name}: {torch.cuda.get_device_name(name)}", level=logging.INFO)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 414, in get_device_name
+    return get_device_properties(device).name
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 444, in get_device_properties
+    _lazy_init()  # will define _get_device_properties
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 293, in _lazy_init
+    torch._C._cuda_init()
+RuntimeError: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero.
+2024-11-09 22:52:36,126 - wandb.wandb_agent - INFO - Cleaning up finished run: ssjaanv5
+wandb: - 0.011 MB of 0.018 MB uploadedwandb: 🚀 View run sweet-sweep-8 at: https://wandb.ai/addisonweatherhead/YAIB/runs/ssjaanv5
+wandb: ⭐️ View project at: https://wandb.ai/addisonweatherhead/YAIB
+wandb: Synced 6 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20241109_225218-ssjaanv5/logs
+wandb: WARNING The new W&B backend becomes opt-out in version 0.18.0; try it out with `wandb.require("core")`! See https://wandb.me/wandb-core for more information.
+2024-11-09 22:52:39,879 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-09 22:52:39,880 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.005
+	ImputationDataset.mask_method: MAR
+	ImputationWrapper.lr_scheduler: 
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 64
+	SAITS.dropout: 0.3
+	SAITS.n_head: 8
+	SAITS.n_layers: 4
+	data_dir: demo_data/simulated/seasonal
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-09 22:52:39,891 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/seasonal -c --wandb-sweep --wandb
+2024-11-09 22:52:44,901 - wandb.wandb_agent - INFO - Running runs: ['0r8a7ztu']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.18.6 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.2
+wandb: Run data is saved locally in /fs01/home/addisonw/YAIB/wandb/run-20241109_225328-0r8a7ztu
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run tough-sweep-9
+wandb: ⭐️ View project at https://wandb.ai/addisonweatherhead/YAIB
+wandb: 🧹 View sweep at https://wandb.ai/addisonweatherhead/YAIB/sweeps/7719jq7m
+wandb: 🚀 View run at https://wandb.ai/addisonweatherhead/YAIB/runs/0r8a7ztu
+INFO:root:Running experiment seasonal.
+INFO:root:Task mode: Imputation.
+INFO:root:Logging to ../yaib_logs/seasonal/SimulatedDatasetImputation/SAITS.
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/bin/icu-benchmarks", line 33, in <module>
+    sys.exit(load_entry_point('yaib', 'console_scripts', 'icu-benchmarks')())
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/run.py", line 94, in main
+    log_full_line(f"Available GPU {name}: {torch.cuda.get_device_name(name)}", level=logging.INFO)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 414, in get_device_name
+    return get_device_properties(device).name
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 444, in get_device_properties
+    _lazy_init()  # will define _get_device_properties
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 293, in _lazy_init
+    torch._C._cuda_init()
+RuntimeError: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero.
+wandb: - 0.004 MB of 0.004 MB uploadedwandb: 🚀 View run tough-sweep-9 at: https://wandb.ai/addisonweatherhead/YAIB/runs/0r8a7ztu
+wandb: ⭐️ View project at: https://wandb.ai/addisonweatherhead/YAIB
+wandb: Synced 6 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20241109_225328-0r8a7ztu/logs
+wandb: WARNING The new W&B backend becomes opt-out in version 0.18.0; try it out with `wandb.require("core")`! See https://wandb.me/wandb-core for more information.
+2024-11-09 22:53:55,593 - wandb.wandb_agent - INFO - Cleaning up finished run: 0r8a7ztu
+2024-11-09 22:53:55,996 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-09 22:53:55,996 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.001
+	ImputationDataset.mask_method: MAR
+	ImputationWrapper.lr_scheduler: 
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 32
+	SAITS.dropout: 0.3
+	SAITS.n_head: 4
+	SAITS.n_layers: 2
+	data_dir: demo_data/simulated/seasonal
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-09 22:53:56,004 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/seasonal -c --wandb-sweep --wandb
+2024-11-09 22:54:01,017 - wandb.wandb_agent - INFO - Running runs: ['97hui5xb']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.18.6 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.2
+wandb: Run data is saved locally in /fs01/home/addisonw/YAIB/wandb/run-20241109_225424-97hui5xb
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run electric-sweep-10
+wandb: ⭐️ View project at https://wandb.ai/addisonweatherhead/YAIB
+wandb: 🧹 View sweep at https://wandb.ai/addisonweatherhead/YAIB/sweeps/7719jq7m
+wandb: 🚀 View run at https://wandb.ai/addisonweatherhead/YAIB/runs/97hui5xb
+INFO:root:Running experiment seasonal.
+INFO:root:Task mode: Imputation.
+INFO:root:Logging to ../yaib_logs/seasonal/SimulatedDatasetImputation/SAITS.
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/bin/icu-benchmarks", line 33, in <module>
+    sys.exit(load_entry_point('yaib', 'console_scripts', 'icu-benchmarks')())
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/run.py", line 94, in main
+    log_full_line(f"Available GPU {name}: {torch.cuda.get_device_name(name)}", level=logging.INFO)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 414, in get_device_name
+    return get_device_properties(device).name
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 444, in get_device_properties
+    _lazy_init()  # will define _get_device_properties
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 293, in _lazy_init
+    torch._C._cuda_init()
+RuntimeError: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero.
+wandb: - 0.004 MB of 0.004 MB uploadedwandb: 🚀 View run electric-sweep-10 at: https://wandb.ai/addisonweatherhead/YAIB/runs/97hui5xb
+wandb: ⭐️ View project at: https://wandb.ai/addisonweatherhead/YAIB
+wandb: Synced 6 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20241109_225424-97hui5xb/logs
+wandb: WARNING The new W&B backend becomes opt-out in version 0.18.0; try it out with `wandb.require("core")`! See https://wandb.me/wandb-core for more information.
+2024-11-09 22:54:51,473 - wandb.wandb_agent - INFO - Cleaning up finished run: 97hui5xb
+2024-11-09 22:54:51,898 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-09 22:54:51,898 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.001
+	ImputationDataset.mask_method: MAR
+	ImputationWrapper.lr_scheduler: cosine
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 64
+	SAITS.dropout: 0.1
+	SAITS.n_head: 4
+	SAITS.n_layers: 2
+	data_dir: demo_data/simulated/seasonal
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-09 22:54:51,908 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/seasonal -c --wandb-sweep --wandb
+2024-11-09 22:54:56,921 - wandb.wandb_agent - INFO - Running runs: ['7az28b05']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.18.6 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.2
+wandb: Run data is saved locally in /fs01/home/addisonw/YAIB/wandb/run-20241109_225512-7az28b05
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run northern-sweep-11
+wandb: ⭐️ View project at https://wandb.ai/addisonweatherhead/YAIB
+wandb: 🧹 View sweep at https://wandb.ai/addisonweatherhead/YAIB/sweeps/7719jq7m
+wandb: 🚀 View run at https://wandb.ai/addisonweatherhead/YAIB/runs/7az28b05
+INFO:root:Running experiment seasonal.
+INFO:root:Task mode: Imputation.
+INFO:root:Logging to ../yaib_logs/seasonal/SimulatedDatasetImputation/SAITS.
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/bin/icu-benchmarks", line 33, in <module>
+    sys.exit(load_entry_point('yaib', 'console_scripts', 'icu-benchmarks')())
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/run.py", line 94, in main
+    log_full_line(f"Available GPU {name}: {torch.cuda.get_device_name(name)}", level=logging.INFO)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 414, in get_device_name
+    return get_device_properties(device).name
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 444, in get_device_properties
+    _lazy_init()  # will define _get_device_properties
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 293, in _lazy_init
+    torch._C._cuda_init()
+RuntimeError: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero.
+wandb: - 0.004 MB of 0.004 MB uploadedwandb: \ 0.004 MB of 0.018 MB uploadedwandb: 🚀 View run northern-sweep-11 at: https://wandb.ai/addisonweatherhead/YAIB/runs/7az28b05
+wandb: ⭐️ View project at: https://wandb.ai/addisonweatherhead/YAIB
+wandb: Synced 6 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20241109_225512-7az28b05/logs
+wandb: WARNING The new W&B backend becomes opt-out in version 0.18.0; try it out with `wandb.require("core")`! See https://wandb.me/wandb-core for more information.
+2024-11-09 22:55:37,323 - wandb.wandb_agent - INFO - Cleaning up finished run: 7az28b05
+2024-11-09 22:55:38,122 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-09 22:55:38,123 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.001
+	ImputationDataset.mask_method: MAR
+	ImputationWrapper.lr_scheduler: cosine
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 32
+	SAITS.dropout: 0.1
+	SAITS.n_head: 4
+	SAITS.n_layers: 4
+	data_dir: demo_data/simulated/seasonal
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-09 22:55:38,141 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/seasonal -c --wandb-sweep --wandb
+2024-11-09 22:55:43,154 - wandb.wandb_agent - INFO - Running runs: ['awirb14s']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.18.6 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.2
+wandb: Run data is saved locally in /fs01/home/addisonw/YAIB/wandb/run-20241109_225629-awirb14s
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run fragrant-sweep-13
+wandb: ⭐️ View project at https://wandb.ai/addisonweatherhead/YAIB
+wandb: 🧹 View sweep at https://wandb.ai/addisonweatherhead/YAIB/sweeps/7719jq7m
+wandb: 🚀 View run at https://wandb.ai/addisonweatherhead/YAIB/runs/awirb14s
+INFO:root:Running experiment seasonal.
+INFO:root:Task mode: Imputation.
+INFO:root:Logging to ../yaib_logs/seasonal/SimulatedDatasetImputation/SAITS.
+Traceback (most recent call last):
+  File "/h/addisonw/anaconda3/envs/yaib/bin/icu-benchmarks", line 33, in <module>
+    sys.exit(load_entry_point('yaib', 'console_scripts', 'icu-benchmarks')())
+  File "/fs01/home/addisonw/YAIB/icu_benchmarks/run.py", line 94, in main
+    log_full_line(f"Available GPU {name}: {torch.cuda.get_device_name(name)}", level=logging.INFO)
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 414, in get_device_name
+    return get_device_properties(device).name
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 444, in get_device_properties
+    _lazy_init()  # will define _get_device_properties
+  File "/h/addisonw/anaconda3/envs/yaib/lib/python3.10/site-packages/torch/cuda/__init__.py", line 293, in _lazy_init
+    torch._C._cuda_init()
+RuntimeError: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero.
+wandb: - 0.004 MB of 0.004 MB uploadedwandb: 🚀 View run fragrant-sweep-13 at: https://wandb.ai/addisonweatherhead/YAIB/runs/awirb14s
+wandb: ⭐️ View project at: https://wandb.ai/addisonweatherhead/YAIB
+wandb: Synced 6 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20241109_225629-awirb14s/logs
+wandb: WARNING The new W&B backend becomes opt-out in version 0.18.0; try it out with `wandb.require("core")`! See https://wandb.me/wandb-core for more information.
+2024-11-09 22:56:53,857 - wandb.wandb_agent - ERROR - Detected 5 failed runs in a row, shutting down.
+2024-11-09 22:56:53,860 - wandb.wandb_agent - INFO - To change this value set WANDB_AGENT_MAX_INITIAL_FAILURES=val
+wandb: Terminating and syncing runs. Press ctrl-c to kill.

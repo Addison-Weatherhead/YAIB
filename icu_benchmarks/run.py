@@ -20,6 +20,9 @@ from icu_benchmarks.run_utils import (
     name_datasets,
 )
 from icu_benchmarks.contants import RunMode
+import time
+import random
+from icu_benchmarks.global_config import GlobalConfig
 
 
 @gin.configurable("Run")
@@ -30,6 +33,7 @@ def get_mode(mode: gin.REQUIRED):
 
 
 def main(my_args=tuple(sys.argv[1:])):
+    time.sleep(random.uniform(1, 50)) # If multiple slurm jobs for the same model get run at the same time, need different start times for logging
     args, _ = build_parser().parse_known_args(my_args)
     if args.wandb_sweep:
         args = apply_wandb_sweep(args)
@@ -48,9 +52,19 @@ def main(my_args=tuple(sys.argv[1:])):
     evaluate = args.eval
     experiment = args.experiment
     source_dir = args.source_dir
+    save_ckpt = args.save_checkpoint
     # Load task config
     gin.parse_config_file(f"configs/tasks/{task}.gin")
     mode = get_mode()
+    mask_method = args.mask_method # Only used when mode == "Imputation"
+    mask_proportion = args.mask_proportion # Only used when mode == "Imputation"
+    mask_observation_proportion = args.mask_observation_proportion # Only used when mode == "Imputation"
+    
+    # Update Global Config
+    GlobalConfig.dataset_name = args.name
+    GlobalConfig.model_name = args.model
+    GlobalConfig.missingness_type = args.mask_method
+    
     # Set arguments for wandb sweep
 
     # Set experiment name
@@ -63,8 +77,16 @@ def main(my_args=tuple(sys.argv[1:])):
     train_size = args.fine_tune if args.fine_tune is not None else args.samples if args.samples is not None else None
     # Whether to load weights from a previous run
     load_weights = evaluate or args.fine_tune is not None
-
     pretrained_imputation_model = load_pretrained_imputation_model(args.pretrained_imputation)
+    if args.pretrained_imputation:
+        print('path: ', args.pretrained_imputation)
+        for missingness_type in ['MCAR', 'MAR', 'MNAR', 'blockBO', 'BO']:
+            if missingness_type in args.pretrained_imputation:
+                GlobalConfig.pretrained_imputation_missingness_type = missingness_type
+                break
+        print('pretrained_imputation_model.val_uncertainties: ', pretrained_imputation_model.val_uncertainties)
+        print('GlobalConfig.pretrained_imputation_missingness_type: ', GlobalConfig.pretrained_imputation_missingness_type)
+    
     # Log imputation model to wandb
     update_wandb_config(
         {
@@ -121,7 +143,7 @@ def main(my_args=tuple(sys.argv[1:])):
                 Path("configs") / ("imputation_models" if mode == RunMode.imputation else "prediction_models") / f"{model}.gin"
         )
         gin_config_files = (
-            [Path(f"configs/experiments/{args.experiment}.gin")]
+            [Path(f"{args.experiment}.gin")]
             if args.experiment
             else [model_path, Path(f"configs/tasks/{task}.gin")]
         )
@@ -166,10 +188,14 @@ def main(my_args=tuple(sys.argv[1:])):
         load_cache=args.load_cache,
         generate_cache=args.generate_cache,
         mode=mode,
+        mask_method=mask_method,
+        mask_proportion=mask_proportion,
+        mask_observation_proportion=mask_observation_proportion,
         pretrained_imputation_model=pretrained_imputation_model,
         cpu=args.cpu,
         wandb=args.wandb_sweep,
         complete_train=args.complete_train,
+        save_ckpt=save_ckpt
     )
 
     log_full_line("FINISHED TRAINING", level=logging.INFO, char="=", num_newlines=3)

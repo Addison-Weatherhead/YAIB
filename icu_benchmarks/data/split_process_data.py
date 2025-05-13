@@ -24,16 +24,18 @@ def preprocess_data(
     vars: dict[str] = gin.REQUIRED,
     seed: int = 42,
     debug: bool = False,
-    cv_repetitions: int = 5,
+    cv_repetitions: int = 1,#5,
     repetition_index: int = 0,
     cv_folds: int = 5,
     train_size: int = None,
     load_cache: bool = False,
     generate_cache: bool = False,
     fold_index: int = 0,
-    pretrained_imputation_model: str = None,
+    pretrained_imputation_model: object = None,
     complete_train: bool = False,
     runmode: RunMode = RunMode.classification,
+    min_seq_len: int = None,
+    max_seq_len: int = None
 ) -> dict[dict[pd.DataFrame]]:
     """Perform loading, splitting, imputing and normalising of task data.
 
@@ -55,14 +57,15 @@ def preprocess_data(
         generate_cache: Generate cached preprocessed data if true.
         fold_index: Index of the fold to return.
         pretrained_imputation_model: pretrained imputation model to use. if None, standard imputation is used.
-
+        min_seq_len: The min length of a sample. Shorter ones will be thrown away
+        max_seq_len: The max length of a sample. Longer ones will be thrown away
     Returns:
         Preprocessed data as DataFrame in a hierarchical dict with features type (STATIC) / DYNAMIC/ OUTCOME
             nested within split (train/val/test).
     """
-
+    print("min_seq_len: ", min_seq_len)
+    print("max_seq_len: ", max_seq_len)
     cache_dir = data_dir / "cache"
-
     if not use_static:
         file_names.pop(Segment.static)
         vars.pop(Segment.static)
@@ -92,6 +95,26 @@ def preprocess_data(
     # Read parquet files into pandas dataframes and remove the parquet file from memory
     logging.info(f"Loading data from directory {data_dir.absolute()}")
     data = {f: pq.read_table(data_dir / file_names[f]).to_pandas(self_destruct=True) for f in file_names.keys()}
+    
+    # Compute global min/max sequence lengths
+    lengths = data[Segment.dynamic].groupby(vars[Var.group]).size()
+    print("Number of stay id's in raw data", len(lengths))
+    global_min_seq_len = lengths.min()
+    global_max_seq_len = lengths.max()
+    print('shortest stay: ', global_min_seq_len, ' longest stay: ', global_max_seq_len)
+
+    min_seq_len = min_seq_len if min_seq_len is not None else global_min_seq_len
+    max_seq_len = max_seq_len if max_seq_len is not None else global_max_seq_len
+
+    # Filter sequences based on length
+    valid_groups = lengths[(lengths >= min_seq_len) & (lengths <= max_seq_len)].index
+    print('Number of valid stays based on min/max restriction: ', len(valid_groups))
+    data[Segment.dynamic] = data[Segment.dynamic][data[Segment.dynamic][vars[Var.group]].isin(valid_groups)]
+    if Segment.outcome in data:
+        data[Segment.outcome] = data[Segment.outcome][data[Segment.outcome][vars[Var.group]].isin(valid_groups)]
+    if Segment.static in data:
+        data[Segment.static] = data[Segment.static][data[Segment.static][vars[Var.group]].isin(valid_groups)]
+    
     # Generate the splits
     logging.info("Generating splits.")
     if not complete_train:
@@ -105,12 +128,18 @@ def preprocess_data(
             train_size=train_size,
             seed=seed,
             debug=debug,
-            runmode=runmode,
+            runmode=runmode
         )
     else:
         # If full train is set, we use all data for training/validation
         data = make_train_val(data, vars, train_size=0.8, seed=seed, debug=debug, runmode=runmode)
 
+    print('train number of unique stays in dynamic: ', data[Split.train][Segment.dynamic][vars[Var.group]].nunique())
+    print('train number of unique stays in static: ', data[Split.train][Segment.static][vars[Var.group]].nunique())
+    print('val number of unique stays in dynamic: ', data[Split.val][Segment.dynamic][vars[Var.group]].nunique())
+    print('val number of unique stays in static: ', data[Split.val][Segment.static][vars[Var.group]].nunique())
+    print('test number of unique stays in dynamic: ', data[Split.test][Segment.dynamic][vars[Var.group]].nunique())
+    print('test number of unique stays in static: ', data[Split.test][Segment.static][vars[Var.group]].nunique())
     # Apply preprocessing
     data = preprocessor.apply(data, vars)
 
@@ -122,7 +151,7 @@ def preprocess_data(
 
     logging.info("Finished preprocessing.")
 
-    return data
+    return data, min_seq_len, max_seq_len
 
 
 def make_train_val(
@@ -218,12 +247,13 @@ def make_single_split(
         logging.info("Using only 1% of the data for debugging. Note that this might lead to errors for small datasets.")
         data[Segment.outcome] = data[Segment.outcome].sample(frac=0.01, random_state=seed)
     # Get stay IDs from outcome segment
-    stays = pd.Series(data[Segment.outcome][id].unique(), name=id)
+    stays = pd.Series(data[Segment.static][id].unique(), name=id)
 
     # If there are labels, and the task is classification, use stratified k-fold
     if Var.label in vars and runmode is RunMode.classification:
         # Get labels from outcome data (takes the highest value (or True) in case seq2seq classification)
         labels = data[Segment.outcome].groupby(id).max()[vars[Var.label]].reset_index(drop=True)
+        print("Labels value counts: ", labels.value_counts())
         if labels.value_counts().min() < cv_folds:
             raise Exception(
                 f"The smallest amount of samples in a class is: {labels.value_counts().min()}, "

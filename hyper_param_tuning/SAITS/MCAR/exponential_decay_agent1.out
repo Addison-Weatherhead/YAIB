@@ -1,0 +1,136 @@
+wandb: Starting wandb agent 🕵️
+2024-11-07 17:19:25,348 - wandb.wandb_agent - INFO - Running runs: []
+2024-11-07 17:19:25,902 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-07 17:19:25,904 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.005
+	ImputationDataset.mask_method: MCAR
+	ImputationWrapper.lr_scheduler: cosine
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 64
+	SAITS.dropout: 0.3
+	SAITS.n_head: 4
+	SAITS.n_layers: 4
+	data_dir: demo_data/simulated/exponential_decay
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-07 17:19:25,943 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/exponential_decay -c --wandb-sweep --wandb
+2024-11-07 17:19:30,954 - wandb.wandb_agent - INFO - Running runs: ['xa3a9mru']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.18.6 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.2
+wandb: Run data is saved locally in /fs01/home/addisonw/YAIB/wandb/run-20241107_171942-xa3a9mru
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run comfy-sweep-119
+wandb: ⭐️ View project at https://wandb.ai/addisonweatherhead/YAIB
+wandb: 🧹 View sweep at https://wandb.ai/addisonweatherhead/YAIB/sweeps/65o9zt63
+wandb: 🚀 View run at https://wandb.ai/addisonweatherhead/YAIB/runs/xa3a9mru
+INFO:root:Running experiment exponential_decay.
+INFO:root:Task mode: Imputation.
+INFO:root:Logging to ../yaib_logs/exponential_decay/SimulatedDatasetImputation/SAITS.
+INFO:root:----------Available GPU 0: NVIDIA A40-----------
+2024-11-07 17:20:01.520836: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2024-11-07 17:20:01.520940: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2024-11-07 17:20:01.528358: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2024-11-07 17:20:01.632927: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-11-07 17:20:04.492622: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+INFO:root:Data directory: /fs01/home/addisonw/YAIB/demo_data/simulated/exponential_decay
+WARNING:root:No scopes and/or folds to tune on, skipping tuning.
+INFO:root:Logging to /fs01/home/addisonw/yaib_logs/exponential_decay/SimulatedDatasetImputation/SAITS/2024-11-07T17-20-07
+INFO:root:===============STARTING TRAINING================
+
+
+
+INFO:root:Training for 50 epochs
+2024-11-07 17:20:07 - INFO - lightning_fabric.utilities.seed : [rank: 0] Seed set to 1111
+INFO:root:Starting nested CV with 1 repetitions of 1 folds.
+INFO:root:Using preprocessor: DefaultImputationPreprocessor
+INFO:root:Loading data from directory /fs01/home/addisonw/YAIB/demo_data/simulated/exponential_decay
+INFO:root:Generating splits.
+INFO:root:Preprocessor static features.
+INFO:root:Removed 0 stays with missing values.
+INFO:root:Removed 0 stays with missing values.
+INFO:root:Removed 0 stays with missing values.
+INFO:root:Cache will not be saved.
+INFO:root:Finished preprocessing.
+INFO:root:Training model: SAITSImputation.
+INFO:root:Logging to directory: ../yaib_logs/exponential_decay/SimulatedDatasetImputation/SAITS/2024-11-07T17-20-07/repetition_0/fold_0.
+Dataset keys:  dict_keys(['train', 'val', 'test'])
+val data:  {'OUTCOME':      stay_id  label
+0         18   0.01
+1         27   0.01
+2         28   0.01
+3         37   0.01
+4         53   0.01
+..       ...    ...
+495     4918   0.01
+496     4934   0.01
+497     4951   0.01
+498     4978   0.01
+499     4995   0.01
+
+[500 rows x 2 columns], 'STATIC':      stay_id      sta1
+0         18  3.232269
+1         27  7.182961
+2         28  7.932440
+3         37  9.205962
+4         53  4.935488
+..       ...       ...
+495     4918  2.306075
+496     4934  2.350104
+497     4951  8.357702
+498     4978  1.944590
+499     4995  5.986283
+
+[500 rows x 2 columns], 'FEATURES':            dyn1      dyn2  stay_id            time
+0      0.469159  2.204150       18 0 days 00:00:00
+1      0.451726  2.169408       18 0 days 01:00:00
+2      0.434467  2.135012       18 0 days 02:00:00
+3      0.417380  2.100959       18 0 days 03:00:00
+4      0.400463  2.067244       18 0 days 04:00:00
+...         ...       ...      ...             ...
+99995 -0.821177 -1.137403     4995 8 days 03:00:00
+99996 -0.825770 -1.138895     4995 8 days 04:00:00
+99997 -0.830318 -1.140373     4995 8 days 05:00:00
+99998 -0.834820 -1.141836     4995 8 days 06:00:00
+99999 -0.839278 -1.143284     4995 8 days 07:00:00
+
+[100000 rows x 4 columns]}
+train data num unique stay_ids:  2000
+val data num unique stay_ids:  500
+test data num unique stay_ids:  2500
+INFO:root:Applying MCAR amputation.
+INFO:root:Applying MCAR amputation.
+len(train_dataset):  2000
+len(val_dataset):  500
+INFO:root:Training on exponential_decay with 2000 samples and validating on exponential_decay with 500 samples.
+INFO:root:Using 2 workers for data loading.
+2024-11-07 17:20:09 [INFO]: No given device, using default device: cuda
+2024-11-07 17:20:09 [INFO]: saving_path not given. Model files and tensorboard file will not be saved.
+2024-11-07 17:20:09 [INFO]: Model initialized successfully with the number of trainable parameters: 1,056,928
+INFO:root:logging metrics to file: /fs01/home/addisonw/yaib_logs/exponential_decay/SimulatedDatasetImputation/SAITS/2024-11-07T17-20-07/repetition_0/fold_0
+2024-11-07 17:20:09 - INFO - pytorch_lightning.utilities.rank_zero : GPU available: True (cuda), used: True
+2024-11-07 17:20:09 - INFO - pytorch_lightning.utilities.rank_zero : TPU available: False, using: 0 TPU cores
+2024-11-07 17:20:09 - INFO - pytorch_lightning.utilities.rank_zero : HPU available: False, using: 0 HPUs
+INFO:root:Training ML model.
+2024-11-07 17:20:13 [INFO]: epoch 0: training loss 0.9638
+2024-11-07 17:20:16 [INFO]: epoch 1: training loss 0.6278
+2024-11-07 17:20:18 [INFO]: epoch 2: training loss 0.5576
+2024-11-07 17:20:21 [INFO]: epoch 3: training loss 0.5094
+2024-11-07 17:20:24 [INFO]: epoch 4: training loss 0.4771
+2024-11-07 17:20:26 [INFO]: epoch 5: training loss 0.4549
+2024-11-07 17:20:29 [INFO]: epoch 6: training loss 0.4245
+2024-11-07 17:20:32 [INFO]: epoch 7: training loss 0.4146
+2024-11-07 17:20:34 [INFO]: epoch 8: training loss 0.3995
+2024-11-07 17:20:37 [INFO]: epoch 9: training loss 0.3852
+2024-11-07 17:20:40 [INFO]: epoch 10: training loss 0.3820
+2024-11-07 17:20:42 [INFO]: epoch 11: training loss 0.3698
+2024-11-07 17:20:45 [INFO]: epoch 12: training loss 0.3589
+2024-11-07 17:20:48 [INFO]: epoch 13: training loss 0.3555

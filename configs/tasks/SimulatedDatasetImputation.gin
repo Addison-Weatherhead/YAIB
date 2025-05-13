@@ -1,0 +1,28 @@
+# COMMON IMPORTS
+include "configs/tasks/common/Imports.gin"
+
+# CROSS-VALIDATION
+include "configs/tasks/common/CrossValidation.gin"
+
+Run.mode = "Imputation"
+
+# DATASET STRUCTURE
+vars = {
+    "GROUP": "stay_id",
+    "SEQUENCE": "time",
+    "DYNAMIC": ["dyn1", "dyn2"],
+    "STATIC": ["sta1"],
+}
+
+
+preprocess.file_names = {
+    "DYNAMIC": "dyn.parquet",
+    "STATIC": "sta.parquet",
+}
+
+preprocess.preprocessor = @base_imputation_preprocessor
+
+preprocess.vars = %vars
+ImputationDataset.vars = %vars
+ImputationDataset.ram_cache = True
+

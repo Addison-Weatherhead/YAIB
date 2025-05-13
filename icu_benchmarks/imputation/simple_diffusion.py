@@ -18,19 +18,23 @@ class SimpleDiffusionModel(ImputationWrapper):
     def __init__(self, *args, input_size, **kwargs):
         super().__init__(*args, input_size=input_size, **kwargs)
 
-        down_channels = (25, 20, 18, 15)
-        up_channels = (15, 18, 20, 25)
-        time_emb_dim = 6
+        factor = 2
+        num_layers = 4
+        down_channels = [32 * factor**i for i in range(num_layers)]  # Start with 32 channels
+        up_channels = down_channels[::-1]
+        time_emb_dim = 32
 
         self.input_size = input_size
 
         # Time embedding
         self.time_mlp = nn.Sequential(
-            SinusoidalPositionEmbeddings(time_emb_dim), nn.Linear(time_emb_dim, time_emb_dim), nn.ReLU()
+            SinusoidalPositionEmbeddings(time_emb_dim),
+            nn.Linear(time_emb_dim, time_emb_dim),
+            nn.ReLU()
         )
 
         # Initial projection
-        self.conv0 = nn.Conv1d(input_size[1], down_channels[0], 2)
+        self.conv0 = nn.Conv1d(input_size[2], down_channels[0], 2)
 
         # Downsample
         self.downs = nn.ModuleList(
@@ -43,10 +47,12 @@ class SimpleDiffusionModel(ImputationWrapper):
         )
 
         # Final Output
-        self.output = nn.ConvTranspose1d(up_channels[-1], input_size[1], 2)
+        self.output = nn.ConvTranspose1d(up_channels[-1], input_size[2], 2)
+
 
     def forward(self, amputated, timestep):
         amputated = torch.nan_to_num(amputated, nan=0.0)
+        amputated = amputated.permute(0, 2, 1)  # Now shape is (batch_size, channels, length)
         # model_input = torch.cat((amputated, amputation_mask), dim=1)
 
         # output = self.model(model_input)
@@ -70,7 +76,7 @@ class SimpleDiffusionModel(ImputationWrapper):
 
         # Output Layer
         output = self.output(x)
-
+        output = output.permute(0, 2, 1)  # Convert back to [batch_size, seq_len, num_features]
         return output
 
     def linear_beta_schedule(timesteps, start=0.0001, end=0.02):
@@ -82,8 +88,8 @@ class SimpleDiffusionModel(ImputationWrapper):
         while considering the batch dimension.
         """
         batch_size = t.shape[0]
-        out = vals.gather(-1, t)
-        return out.reshape(batch_size, *((1,) * (len(x_shape) - 1))).to(t.device)
+        out = vals[t].to(t.device)  # Direct indexing instead of gather
+        return out.reshape(batch_size, *((1,) * (len(x_shape) - 1)))
 
     def forward_diffusion_sample(self, x_0, t):
         """
@@ -128,8 +134,8 @@ class SimpleDiffusionModel(ImputationWrapper):
     def training_step(self, batch):
         amputated, amputation_mask, target, target_missingness = batch
         amputated = torch.nan_to_num(amputated, nan=0.0)
-
-        t = torch.randint(0, self.T, (self.input_size[0],), device=self.device).long()
+        batch_size = amputated.shape[0]
+        t = torch.randint(0, self.T, (batch_size,), device=self.device).long()
         loss = self.get_loss(target, t)
 
         self.log("train/loss", loss.item(), prog_bar=True)
@@ -142,26 +148,26 @@ class SimpleDiffusionModel(ImputationWrapper):
     def validation_step(self, batch, batch_index):
         amputated, amputation_mask, target, target_missingness = batch
         amputated = torch.nan_to_num(amputated, nan=0.0)
-        # imputated = self(amputated, amputation_mask)
-
-        t = torch.randint(0, self.T, (1,), device=self.device).long()
+        batch_size = amputated.shape[0]
+        t = torch.randint(0, self.T, (batch_size,), device=self.device).long()
 
         betas_t = self.get_index_from_list(self.betas, t, amputated.shape)
         sqrt_one_minus_alphas_cumprod_t = self.get_index_from_list(self.sqrt_one_minus_alphas_cumprod, t, amputated.shape)
         sqrt_recip_alphas_t = self.get_index_from_list(self.sqrt_recip_alphas, t, amputated.shape)
 
-        model_mean = sqrt_recip_alphas_t * (amputated - betas_t * self(amputated, t) / sqrt_one_minus_alphas_cumprod_t)
+        model_output = self(amputated, t)
+        model_mean = sqrt_recip_alphas_t * (amputated - betas_t * model_output / sqrt_one_minus_alphas_cumprod_t)
 
         posterior_variance_t = self.get_index_from_list(self.posterior_variance, t, amputated.shape)
 
-        if t == 0:
-            imputated = model_mean
-        else:
-            noise = torch.randn_like(amputated)
-            imputated = model_mean + torch.sqrt(posterior_variance_t) * noise
+        # Compute imputated without an if statement
+        noise = torch.randn_like(amputated)
+        sqrt_posterior_variance_t = torch.sqrt(posterior_variance_t)
+        imputated = model_mean + sqrt_posterior_variance_t * noise
 
-        # imputated = amputated.masked_scatter_(amputation_mask.bool(), imputated)
+        # When t == 0, sqrt_posterior_variance_t is zero, so imputated == model_mean
 
+        # Update the amputated tensor with imputated values where needed
         amputated[amputation_mask > 0] = imputated[amputation_mask > 0]
         amputated[target_missingness > 0] = target[target_missingness > 0]
 
@@ -171,28 +177,26 @@ class SimpleDiffusionModel(ImputationWrapper):
         for metric in self.metrics["val"].values():
             metric.update((torch.flatten(amputated, start_dim=1), torch.flatten(target, start_dim=1)))
 
+
     def test_step(self, batch, batch_index):
         amputated, amputation_mask, target, target_missingness = batch
         amputated = torch.nan_to_num(amputated, nan=0.0)
-        # imputated = self(amputated, amputation_mask)
-
-        t = torch.randint(0, self.T, (1,), device=self.device).long()
+        batch_size = amputated.shape[0]
+        t = torch.randint(0, self.T, (batch_size,), device=self.device).long()
 
         betas_t = self.get_index_from_list(self.betas, t, amputated.shape)
         sqrt_one_minus_alphas_cumprod_t = self.get_index_from_list(self.sqrt_one_minus_alphas_cumprod, t, amputated.shape)
         sqrt_recip_alphas_t = self.get_index_from_list(self.sqrt_recip_alphas, t, amputated.shape)
 
-        model_mean = sqrt_recip_alphas_t * (amputated - betas_t * self(amputated, t) / sqrt_one_minus_alphas_cumprod_t)
+        model_output = self(amputated, t)
+        model_mean = sqrt_recip_alphas_t * (amputated - betas_t * model_output / sqrt_one_minus_alphas_cumprod_t)
 
         posterior_variance_t = self.get_index_from_list(self.posterior_variance, t, amputated.shape)
 
-        if t == 0:
-            imputated = model_mean
-        else:
-            noise = torch.randn_like(amputated)
-            imputated = model_mean + torch.sqrt(posterior_variance_t) * noise
-
-        # imputated = amputated.masked_scatter_(amputation_mask.bool(), imputated)
+        # Compute imputated without an if statement
+        noise = torch.randn_like(amputated)
+        sqrt_posterior_variance_t = torch.sqrt(posterior_variance_t)
+        imputated = model_mean + sqrt_posterior_variance_t * noise
 
         amputated[amputation_mask > 0] = imputated[amputation_mask > 0]
         amputated[target_missingness > 0] = target[target_missingness > 0]
@@ -204,45 +208,50 @@ class SimpleDiffusionModel(ImputationWrapper):
             metric.update((torch.flatten(amputated, start_dim=1), torch.flatten(target, start_dim=1)))
 
 
+
 class Block(nn.Module):
     def __init__(self, in_ch, out_ch, time_emb_dim, up=False):
         super().__init__()
+
         self.time_mlp = nn.Linear(time_emb_dim, out_ch)
-        time_dim = 5 if in_ch == 25 else 4 if in_ch == 20 else 3 if in_ch == 18 else 2
         if up:
-            # take 2 times the number of input channels because residuals were added in the upsampling process
             in_ch *= 2
             self.conv1 = nn.ConvTranspose1d(in_ch, out_ch, 3, padding=1)
-            self.transform = nn.ConvTranspose1d(out_ch, out_ch, 2)
+            self.transform = nn.ConvTranspose1d(out_ch, out_ch, 2, padding=1)
         else:
             self.conv1 = nn.Conv1d(in_ch, out_ch, 3, padding=1)
-            self.transform = nn.Conv1d(out_ch, out_ch, 2)
+            self.transform = nn.Conv1d(out_ch, out_ch, 2, padding=1)
         self.conv2 = nn.Conv1d(out_ch, out_ch, 3, padding=1)
         self.bnorm1 = nn.BatchNorm1d(out_ch)
         self.bnorm2 = nn.BatchNorm1d(out_ch)
         self.relu = nn.ReLU()
 
         # Transformer Encoder for Feature Self-Attention
-        self.feature_layer = nn.TransformerEncoderLayer(d_model=in_ch, nhead=1, dim_feedforward=64, activation="gelu")
+        self.feature_layer = nn.TransformerEncoderLayer(
+            d_model=in_ch, nhead=1, dim_feedforward=64, activation="gelu", batch_first=True
+        )
         self.feature_transformer = nn.TransformerEncoder(self.feature_layer, num_layers=1)
 
         # Transformer Encoder for Time Self-Attention
-        self.time_layer = nn.TransformerEncoderLayer(d_model=time_dim, nhead=1, dim_feedforward=64, activation="gelu")
+        self.time_layer = nn.TransformerEncoderLayer(
+            d_model=out_ch, nhead=1, dim_feedforward=64, activation="gelu", batch_first=True
+        )
         self.time_transformer = nn.TransformerEncoder(self.time_layer, num_layers=1)
 
     def forward(self, x, t):
         # Apply Feature Self-Attention
-        h = self.feature_transformer(x.permute(0, 2, 1)).permute(0, 2, 1)
-        # Apply Time Self-Attention
-        h = self.time_transformer(h)
+        h = self.feature_transformer(x.permute(0, 2, 1))
+        h = h.permute(0, 2, 1)
         # First Convolution
         h = self.bnorm1(self.relu(self.conv1(h)))
         # Time Embedding
         time_emb = self.relu(self.time_mlp(t))
-        # Extend last dimension
-        time_emb = time_emb[(...,) + (None,)]
+        time_emb = time_emb.unsqueeze(-1)
         # Add time
-        h += time_emb
+        h = h + time_emb
+        # Apply Time Self-Attention
+        h = self.time_transformer(h.permute(0, 2, 1))
+        h = h.permute(0, 2, 1)
         # Second Convolution
         h = self.bnorm2(self.relu(self.conv2(h)))
         return self.transform(h)

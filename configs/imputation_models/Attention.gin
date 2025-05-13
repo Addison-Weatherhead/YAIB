@@ -3,17 +3,18 @@ import icu_benchmarks.models.wrappers
 import icu_benchmarks.models.dl_models
 import icu_benchmarks.models.utils
 import icu_benchmarks.imputation.baselines
-import icu_benchmarks.data.preprocess
+import icu_benchmarks.data.preprocessor
 
 # Train params
 train_common.model = @Attention
 
 # Model params
-Attention.n_layers = 4
-Attention.d_model = 256
+Attention.n_layers = 8 #4
+Attention.d_model = 128
 Attention.d_inner = 128
 Attention.n_head = 4
 Attention.d_k = 32
 Attention.d_v = 32
-Attention.dropout = 0.0
+Attention.dropout = 0.1
 Attention.epochs = 100
+execute_repeated_cv.epochs = 100

@@ -1,3 +1,5 @@
 # CROSS-VALIDATION SETTINGS
-execute_repeated_cv.cv_repetitions = 5
 execute_repeated_cv.cv_folds = 5
+execute_repeated_cv.cv_folds_to_train = 1
+execute_repeated_cv.cv_repetitions = 2
+execute_repeated_cv.cv_repetitions_to_train = 1

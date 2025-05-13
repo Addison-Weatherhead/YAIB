@@ -3,7 +3,7 @@ import icu_benchmarks.models.wrappers
 import icu_benchmarks.models.dl_models
 import icu_benchmarks.models.utils
 import icu_benchmarks.imputation.baselines
-import icu_benchmarks.data.preprocess
+import icu_benchmarks.data.preprocessor
 
 # Train params
 train_common.model = @SAITS
@@ -18,4 +18,6 @@ SAITS.n_head = 4
 SAITS.d_k = 32
 SAITS.d_v = 32
 SAITS.dropout = 0.1
-SAITS.epochs = 100
+SAITS.epochs = 50 #100
+
+execute_repeated_cv.epochs = 50

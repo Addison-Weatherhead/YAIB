@@ -2,7 +2,7 @@ import importlib
 import sys
 import warnings
 from math import sqrt
-
+import math
 import gin
 import torch
 import json
@@ -30,13 +30,16 @@ def build_parser() -> ArgumentParser:
     parser.add_argument("-n", "--name", help="Name of the (target) dataset.")
     parser.add_argument("-tn", "--task-name", help="Name of the task, used for naming experiments.")
     parser.add_argument("-m", "--model", default="LGBMClassifier", help="Name of the model gin.")
+    parser.add_argument("-mm", "--mask-method", default="MCAR", help="Type of missingness to ampute (for imputation task only)")
+    parser.add_argument("-mp", "--mask-proportion", type=float, default=0.3, help="Proportion to artificially mask for amputation (for imputation task only)")
+    parser.add_argument("-mop", "--mask-observation-proportion", type=float, default=0.3, help="Proportion of the observed data to artificially mask for amputation (for imputation task only)")
     parser.add_argument("-e", "--experiment", help="Name of the experiment gin.")
     parser.add_argument("-l", "--log-dir", default=Path("../yaib_logs/"), type=Path, help="Log directory for model weights.")
     parser.add_argument("-s", "--seed", default=1234, type=int, help="Random seed for processing, tuning and training.")
     parser.add_argument("-v", "--verbose", default=False, action=BOA, help="Set to log verbosly. Disable for clean logs.")
     parser.add_argument("--cpu", default=False, action=BOA, help="Set to use CPU.")
     parser.add_argument("-db", "--debug", default=False, action=BOA, help="Set to load less data.")
-    parser.add_argument("--reproducible", default=True, action=BOA, help="Make torch reproducible.")
+    parser.add_argument("--reproducible", default=False, action=BOA, help="Make torch reproducible.")
     parser.add_argument("-lc", "--load_cache", default=False, action=BOA, help="Set to load generated data cache.")
     parser.add_argument("-gc", "--generate_cache", default=False, action=BOA, help="Set to generate data cache.")
     parser.add_argument("-p", "--preprocessor", type=Path, help="Load custom preprocessor from file.")
@@ -52,6 +55,7 @@ def build_parser() -> ArgumentParser:
     parser.add_argument("-sn", "--source-name", type=Path, help="Name of the source dataset.")
     parser.add_argument("--source-dir", type=Path, help="Directory containing gin and model weights.")
     parser.add_argument("-sa", "--samples", type=int, default=None, help="Number of samples to use for evaluation.")
+    parser.add_argument("-sc", "--save-checkpoint", default=False, action=BOA, help="Save model checkpoints")
     return parser
 
 
@@ -106,12 +110,14 @@ def aggregate_results(log_dir: Path, execution_time: timedelta = None):
                 aggregated[repetition.name][fold_iter.name] = {}
                 if (fold_iter / "test_metrics.json").is_file():
                     with open(fold_iter / "test_metrics.json", "r") as f:
-                        result = json.load(f)
-                        aggregated[repetition.name][fold_iter.name].update(result)
-                elif (fold_iter / "val_metrics.csv").is_file():
+                        test_result = json.load(f)
+                        for key, value in test_result.items():
+                            aggregated[repetition.name][fold_iter.name][f"test_{key}"] = value
+                if (fold_iter / "val_metrics.csv").is_file():
                     with open(fold_iter / "val_metrics.csv", "r") as f:
-                        result = json.load(f)
-                        aggregated[repetition.name][fold_iter.name].update(result)
+                        val_result = json.load(f)
+                        for key, value in val_result.items():
+                            aggregated[repetition.name][fold_iter.name][f"val_{key}"] = value
                 # Add durations to metrics
                 if (fold_iter / "durations.json").is_file():
                     with open(fold_iter / "durations.json", "r") as f:
@@ -129,11 +135,15 @@ def aggregate_results(log_dir: Path, execution_time: timedelta = None):
 
     # Compute statistical metric over aggregated results
     averaged_scores = {metric: (mean(list)) for metric, list in list_scores.items()}
-
+    print('averaged_scores: ', averaged_scores)
     # Calculate the population standard deviation over aggregated results over folds/iterations
     # Divide by sqrt(n) to get standard deviation.
-    std_scores = {metric: (pstdev(list) / sqrt(len(list))) for metric, list in list_scores.items()}
-
+    #  std_scores = {metric: (pstdev(list) / sqrt(len(list))) for metric, list in list_scores.items()}
+    std_scores = {
+    metric: (pstdev(vals) / sqrt(len(vals)))
+    for metric, vals in list_scores.items()
+    if all(not math.isnan(v) for v in vals) and len(vals) > 0
+    }
     confidence_interval = {
         metric: (stats.t.interval(0.95, len(list) - 1, loc=mean(list), scale=stats.sem(list)))
         for metric, list in list_scores.items()

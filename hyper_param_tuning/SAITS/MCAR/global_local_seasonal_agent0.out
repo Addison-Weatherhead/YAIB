@@ -1,0 +1,118 @@
+wandb: Starting wandb agent 🕵️
+2024-11-07 17:19:25,427 - wandb.wandb_agent - INFO - Running runs: []
+2024-11-07 17:19:25,717 - wandb.wandb_agent - INFO - Agent received command: run
+2024-11-07 17:19:25,717 - wandb.wandb_agent - INFO - Agent starting run with config:
+	Adam.lr: 0.005
+	ImputationDataset.mask_method: MCAR
+	ImputationWrapper.lr_scheduler: 
+	SAITS.d_inner: 128
+	SAITS.d_k: 32
+	SAITS.d_model: 128
+	SAITS.d_v: 64
+	SAITS.dropout: 0.3
+	SAITS.n_head: 8
+	SAITS.n_layers: 4
+	data_dir: demo_data/simulated/global_local_seasonal
+	execute_repeated_cv.cv_folds: 5
+	execute_repeated_cv.cv_folds_to_train: 1
+	execute_repeated_cv.cv_repetitions: 2
+	execute_repeated_cv.cv_repetitions_to_train: 1
+	model: SAITS
+	seed: 1111
+2024-11-07 17:19:25,720 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env icu-benchmarks train -t SimulatedDatasetImputation -d demo_data/simulated/global_local_seasonal -c --wandb-sweep --wandb
+2024-11-07 17:19:30,731 - wandb.wandb_agent - INFO - Running runs: ['wz800nhl']
+wandb: Currently logged in as: addisonweatherhead. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.18.6 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.2
+wandb: Run data is saved locally in /fs01/home/addisonw/YAIB/wandb/run-20241107_172027-wz800nhl
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run true-sweep-2
+wandb: ⭐️ View project at https://wandb.ai/addisonweatherhead/YAIB
+wandb: 🧹 View sweep at https://wandb.ai/addisonweatherhead/YAIB/sweeps/890bk0wu
+wandb: 🚀 View run at https://wandb.ai/addisonweatherhead/YAIB/runs/wz800nhl
+INFO:root:Running experiment global_local_seasonal.
+INFO:root:Task mode: Imputation.
+INFO:root:Logging to ../yaib_logs/global_local_seasonal/SimulatedDatasetImputation/SAITS.
+INFO:root:----------Available GPU 0: NVIDIA A40-----------
+2024-11-07 17:20:44.558484: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2024-11-07 17:20:44.558583: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2024-11-07 17:20:44.558632: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2024-11-07 17:20:44.571040: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-11-07 17:20:45.782716: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+INFO:root:Data directory: /fs01/home/addisonw/YAIB/demo_data/simulated/global_local_seasonal
+WARNING:root:No scopes and/or folds to tune on, skipping tuning.
+INFO:root:Logging to /fs01/home/addisonw/yaib_logs/global_local_seasonal/SimulatedDatasetImputation/SAITS/2024-11-07T17-20-46
+INFO:root:===============STARTING TRAINING================
+
+
+
+INFO:root:Training for 50 epochs
+2024-11-07 17:20:46 - INFO - lightning_fabric.utilities.seed : [rank: 0] Seed set to 1111
+INFO:root:Starting nested CV with 1 repetitions of 1 folds.
+INFO:root:Using preprocessor: DefaultImputationPreprocessor
+INFO:root:Loading data from directory /fs01/home/addisonw/YAIB/demo_data/simulated/global_local_seasonal
+INFO:root:Generating splits.
+INFO:root:Preprocessor static features.
+INFO:root:Removed 0 stays with missing values.
+INFO:root:Removed 0 stays with missing values.
+INFO:root:Removed 0 stays with missing values.
+INFO:root:Cache will not be saved.
+INFO:root:Finished preprocessing.
+INFO:root:Training model: SAITSImputation.
+INFO:root:Logging to directory: ../yaib_logs/global_local_seasonal/SimulatedDatasetImputation/SAITS/2024-11-07T17-20-46/repetition_0/fold_0.
+Dataset keys:  dict_keys(['train', 'val', 'test'])
+val data:  {'OUTCOME':      stay_id     label
+0         18  0.754396
+1         27  1.727449
+2         28  0.673747
+3         37  1.965292
+4         53  0.746360
+..       ...       ...
+495     4918  0.763744
+496     4934  1.776742
+497     4951  1.257467
+498     4978  1.561207
+499     4995  1.177030
+
+[500 rows x 2 columns], 'STATIC':      stay_id      sta1
+0         18  0.754396
+1         27  1.727449
+2         28  0.673747
+3         37  1.965292
+4         53  0.746360
+..       ...       ...
+495     4918  0.763744
+496     4934  1.776742
+497     4951  1.257467
+498     4978  1.561207
+499     4995  1.177030
+
+[500 rows x 2 columns], 'FEATURES':            dyn1      dyn2  stay_id            time
+0     -0.043423 -0.084766       18 0 days 00:00:00
+1      0.474089  0.434322       18 0 days 01:00:00
+2      0.250298  0.337088       18 0 days 02:00:00
+3      0.093237  0.094047       18 0 days 03:00:00
+4      0.247010  0.189976       18 0 days 04:00:00
+...         ...       ...      ...             ...
+99995  1.298844  1.283708     4995 8 days 03:00:00
+99996  0.718816  0.787149     4995 8 days 04:00:00
+99997  1.008599  1.044765     4995 8 days 05:00:00
+99998  1.047704  1.050008     4995 8 days 06:00:00
+99999  1.636660  1.718366     4995 8 days 07:00:00
+
+[100000 rows x 4 columns]}
+train data num unique stay_ids:  2000
+val data num unique stay_ids:  500
+test data num unique stay_ids:  2500
+INFO:root:Applying MCAR amputation.
+INFO:root:Applying MCAR amputation.
+len(train_dataset):  2000
+len(val_dataset):  500
+INFO:root:Training on global_local_seasonal with 2000 samples and validating on global_local_seasonal with 500 samples.
+INFO:root:Using 2 workers for data loading.
+2024-11-07 17:20:48 [INFO]: No given device, using default device: cuda
+2024-11-07 17:20:48 [INFO]: saving_path not given. Model files and tensorboard file will not be saved.
+2024-11-07 17:20:48 [INFO]: Model initialized successfully with the number of trainable parameters: 1,843,360
+INFO:root:logging metrics to file: /fs01/home/addisonw/yaib_logs/global_local_seasonal/SimulatedDatasetImputation/SAITS/2024-11-07T17-20-46/repetition_0/fold_0
